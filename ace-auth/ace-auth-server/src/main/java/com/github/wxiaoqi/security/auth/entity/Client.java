@@ -5,7 +5,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Date;
 
-@Table(name = "gate_client")
+@Table(name = "auth_client")
 public class Client {
     @Id
     private Integer id;

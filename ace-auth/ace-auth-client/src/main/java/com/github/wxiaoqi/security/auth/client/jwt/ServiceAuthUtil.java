@@ -2,13 +2,10 @@
 package com.github.wxiaoqi.security.auth.client.jwt;
 
 import com.github.wxiaoqi.security.auth.client.config.ServiceAuthConfig;
-import com.github.wxiaoqi.security.auth.client.exception.JwtIllegalArgumentException;
-import com.github.wxiaoqi.security.auth.client.exception.JwtSignatureException;
-import com.github.wxiaoqi.security.auth.client.exception.JwtTokenExpiredException;
 import com.github.wxiaoqi.security.auth.client.feign.ServiceAuthFeign;
-import com.github.wxiaoqi.security.auth.common.event.AuthRemoteEvent;
 import com.github.wxiaoqi.security.auth.common.util.jwt.IJWTInfo;
 import com.github.wxiaoqi.security.auth.common.util.jwt.JWTHelper;
+import com.github.wxiaoqi.security.common.exception.auth.ClientTokenException;
 import com.github.wxiaoqi.security.common.msg.BaseResponse;
 import com.github.wxiaoqi.security.common.msg.ObjectRestResponse;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -28,29 +25,32 @@ import java.util.List;
 @Configuration
 @Slf4j
 @EnableScheduling
-public class ServiceAuthUtil  implements ApplicationListener<AuthRemoteEvent> {
+public class ServiceAuthUtil{
     @Autowired
     private ServiceAuthConfig serviceAuthConfig;
+
     @Autowired
     private ServiceAuthFeign serviceAuthFeign;
+
     private List<String> allowedClient;
     private String clientToken;
 
 
     public IJWTInfo getInfoFromToken(String token) throws Exception {
         try {
-            return JWTHelper.getInfoFromToken(token, serviceAuthConfig.getPubKeyPath());
+            return JWTHelper.getInfoFromToken(token, serviceAuthConfig.getPubKeyByte());
         } catch (ExpiredJwtException ex) {
-            throw new JwtTokenExpiredException("Client token expired!");
+            throw new ClientTokenException("Client token expired!");
         } catch (SignatureException ex) {
-            throw new JwtSignatureException("Client token signature error!");
+            throw new ClientTokenException("Client token signature error!");
         } catch (IllegalArgumentException ex) {
-            throw new JwtIllegalArgumentException("Client token is null or empty!");
+            throw new ClientTokenException("Client token is null or empty!");
         }
     }
 
+    @Scheduled(cron = "0/30 * * * * ?")
     public void refreshAllowedClient() {
-        log.info("refresh allowedClient.....");
+        log.debug("refresh allowedClient.....");
         BaseResponse resp = serviceAuthFeign.getAllowedClient(serviceAuthConfig.getClientId(), serviceAuthConfig.getClientSecret());
         if (resp.getStatus() == 200) {
             ObjectRestResponse<List<String>> allowedClient = (ObjectRestResponse<List<String>>) resp;
@@ -58,10 +58,9 @@ public class ServiceAuthUtil  implements ApplicationListener<AuthRemoteEvent> {
         }
     }
 
-
-    @Scheduled(cron = "0 0 0/1 * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
     public void refreshClientToken() {
-        log.info("refresh client token.....");
+        log.debug("refresh client token.....");
         BaseResponse resp = serviceAuthFeign.getAccessToken(serviceAuthConfig.getClientId(), serviceAuthConfig.getClientSecret());
         if (resp.getStatus() == 200) {
             ObjectRestResponse<String> clientToken = (ObjectRestResponse<String>) resp;
@@ -82,10 +81,5 @@ public class ServiceAuthUtil  implements ApplicationListener<AuthRemoteEvent> {
             this.refreshAllowedClient();
         }
         return allowedClient;
-    }
-
-    @Override
-    public void onApplicationEvent(AuthRemoteEvent authRemoteEvent) {
-        this.allowedClient = authRemoteEvent.getAllowedClient();
     }
 }

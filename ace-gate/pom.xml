@@ -5,7 +5,7 @@
     <parent>
         <artifactId>ace-security</artifactId>
         <groupId>com.github.wxiaoqi</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>2.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,7 +13,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>ace-gate-ratelimit</module>
-        <module>ace-gate-server</module>
+        <module>ace-gate-zuul</module>
+        <module>ace-gateway-v2</module>
     </modules>
 
 </project>
